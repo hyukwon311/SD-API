@@ -31,11 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ln -sf /usr/bin/python3.10 /usr/bin/python && \
     rm -rf /var/lib/apt/lists/*
 
-ARG UID=1000
-ARG GID=1000
-
-RUN groupadd -g ${GID} appuser && \
-    useradd -m -u ${UID} -g ${GID} -s /bin/bash appuser
+RUN groupadd -g 1000 appuser && \
+    useradd -m -u 1000 -g 1000 -s /bin/bash appuser
 
 WORKDIR /app
     
@@ -44,7 +41,6 @@ COPY requirements.txt /app/requirements.txt
 RUN python3 -m pip install --upgrade pip && \
     pip install numpy Cython packaging typing_extensions && \
     pip install -r /app/requirements.txt
-
 
 # 소스 코드 복사 
 COPY . /app

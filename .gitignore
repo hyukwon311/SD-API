@@ -15,9 +15,6 @@ build/
 venv/
 env/
 
-# Environment variables
-.env
-
 # Data & temp files
 data/
 logs/

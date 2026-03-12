@@ -5,7 +5,11 @@ from routers import diarization
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # 콘솔
+        logging.FileHandler("/app/logs/app.log")  # 파일
+    ]
 )
 
 class HealthResponse(BaseModel):

@@ -3,13 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args : 
-        UID : ${UID}
-        GID : ${GID}
 
     image: speaker-diarization-api:latest
     container_name: speaker-diarization-api
-    
+
     environment:
       - TZ=Asia/Seoul
       - NVIDIA_VISIBLE_DEVICES=all
@@ -17,12 +14,11 @@ services:
 
     ports:
       - "9600:9100"
-    
+
     volumes:
-      - ./data:/app/data
-      - ./outputs:/app/outputs
-      - ./logs:/app/logs
-    
+      - diarization-data:/app/data   # 임시 오디오 파일 저장 (실제 사용)
+      - diarization-logs:/app/logs   # 로그 저장
+
     restart: unless-stopped
 
     healthcheck:
@@ -31,7 +27,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    
+
     deploy:
       resources:
         reservations:
@@ -39,18 +35,21 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-
         limits:
           memory: 8G
-    
+
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
+
     networks:
       - api-network
+
+volumes:
+  diarization-data:    # /app/data (temp_audio 포함)
+  diarization-logs:    # /app/logs
 
 networks:
   api-network:

@@ -52,7 +52,6 @@ NeMo Sortformer 모델 기반의 화자 분리(Speaker Diarization) REST API 서
 ├── requirements.txt         # Python 패키지 의존성
 ├── Dockerfile               # Docker 이미지 빌드 설정
 ├── docker-compose.yml       # Docker Compose 서비스 설정
-├── .env                     # 환경 변수 (UID, GID)
 ├── config/
 │   └── settings.py          # 경로, 모델명, 허용 확장자 설정
 ├── routers/
@@ -82,16 +81,7 @@ git clone https://github.com/hyukwon311/SD-API.git
 cd SD-API
 ```
 
-### 2. 환경 변수 설정
-
-`.env` 파일에서 컨테이너 실행 사용자의 UID/GID를 설정합니다. 현재 사용자 기준으로 자동 설정하려면 아래 명령어를 사용하세요.
-
-```bash
-echo "UID=$(id -u)" > .env
-echo "GID=$(id -g)" >> .env
-```
-
-### 3. Docker Compose로 실행
+### 2. Docker Compose로 실행
 
 ```bash
 docker compose up -d --build
@@ -101,7 +91,7 @@ docker compose up -d --build
 
 > **참고:** 최초 실행 시 NeMo 모델 다운로드로 인해 시작에 수 분이 소요될 수 있습니다.
 
-### 4. 동작 확인
+### 3. 동작 확인
 
 ```bash
 curl http://localhost:9600/health
@@ -236,7 +226,7 @@ curl -X POST "http://localhost:9600/api/v1/diarization/batch" \
 
 ## 설정
 
-`config/settings.py` 에서 주요 설정값을 변경할 수 있습니다.
+`config/settings.py`에서 주요 설정값을 변경할 수 있습니다.
 
 ```python
 # 임시 파일 저장 경로
@@ -269,16 +259,28 @@ deploy:
 
 기본 포트는 외부 `9600` → 내부 `9100`으로 매핑됩니다. 변경이 필요하면 `docker-compose.yml`의 `ports` 항목을 수정하세요.
 
+### 볼륨
+
+컨테이너 재시작 시에도 데이터가 유지되도록 Named Volume을 사용합니다.
+
+| 볼륨 이름 | 컨테이너 경로 | 용도 |
+|-----------|--------------|------|
+| `diarization-data` | `/app/data` | 임시 오디오 파일 저장 |
+| `diarization-logs` | `/app/logs` | 애플리케이션 로그 저장 |
+
 ---
 
 ## 로깅 및 헬스체크
 
-**로그**
+### 로그
 
-- 로그 파일은 `./logs` 디렉토리에 저장됩니다.
-- Docker 로그 드라이버: `json-file`, 최대 10MB × 3개 파일 유지
+애플리케이션 로그는 콘솔과 파일에 동시에 출력됩니다.
 
-**헬스체크**
+- **콘솔:** Docker 로그에서 실시간 확인 (`docker compose logs -f`)
+- **파일:** `/app/logs/app.log` (컨테이너 내부 / `diarization-logs` 볼륨에 저장)
+- **Docker 로그 드라이버:** `json-file`, 최대 10MB × 3개 파일 유지
+
+### 헬스체크
 
 컨테이너는 30초마다 `/health` 엔드포인트를 호출하여 상태를 확인합니다.
 

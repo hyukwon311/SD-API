@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+torch
+torchvision
+torchaudio
+Cython
+packaging
+nemo_toolkit[asr] @ git+https://github.com/NVIDIA/NeMo.git@main

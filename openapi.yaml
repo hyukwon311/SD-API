@@ -1,0 +1,215 @@
+openapi: 3.0.3
+
+info:
+  title: Speaker Diarization API
+  version: 1.0.0
+  description: |
+    NeMo Sortformer 기반 화자 분리 API
+
+    ### Endpoints
+    - `GET /health` : 서버 상태 확인
+    - `POST /api/v1/diarization` : 오디오 업로드 후 화자 분리 수행
+
+    ### Docs
+    - Swagger UI: `/docs`
+    - ReDoc: `/redoc`
+    - OpenAPI JSON: `/openapi.json`
+
+servers:
+  - url: http://61.74.187.69:9600
+
+tags:
+  - name: System
+    description: 서버 상태 확인 관련 엔드포인트
+  - name: Audio Processing
+    description: 오디오 업로드 및 화자 분리 관련 엔드포인트
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: 서버가 정상적으로 실행 중인지 확인합니다.
+      operationId: healthCheck
+      responses:
+        "200":
+          description: 서버 정상 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: healthy
+
+  /api/v1/diarization:
+    post:
+      tags:
+        - Audio Processing
+      summary: Perform speaker diarization
+      description: |
+        업로드한 오디오 파일에 대해 화자 분리를 수행합니다.
+
+        ### 검증 항목
+        - 파일명 존재 여부
+        - 허용 확장자 여부
+        - 0바이트 빈 파일 여부
+
+        ### 처리 흐름
+        1. 업로드 파일을 임시 디렉토리에 저장
+        2. NeMo Sortformer 모델로 화자 분리 수행
+        3. 결과 반환
+        4. 임시 파일 삭제
+      operationId: processDiarization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/DiarizationRequest"
+      responses:
+        "200":
+          description: 화자 분리 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiarizationResponse"
+              example:
+                filename: test_audio.wav
+                status: success
+                segments:
+                  - "0.400 2.880 speaker_0"
+                  - "3.200 5.190 speaker_1"
+
+        "400":
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missing_filename:
+                  summary: 파일명 없음
+                  value:
+                    detail: 파일명이 없는 업로드는 허용되지 않습니다.
+                unsupported_format:
+                  summary: 지원하지 않는 확장자
+                  value:
+                    detail: 지원하지 않는 오디오 형식입니다.
+                empty_audio:
+                  summary: 빈 오디오 파일
+                  value:
+                    detail: 빈 오디오 파일은 처리할 수 없습니다.
+
+        "422":
+          description: 요청 형식 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+              example:
+                detail:
+                  - loc:
+                      - body
+                      - file
+                    msg: Field required
+                    type: missing
+
+        "500":
+          description: 서버 내부 오류
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: 화자 분리 처리 중 내부 오류가 발생했습니다.
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: healthy
+          description: 서버 상태
+
+    DiarizationRequest:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 화자 분리를 수행할 오디오 파일
+
+    DiarizationResponse:
+      type: object
+      required:
+        - filename
+        - status
+        - segments
+      properties:
+        filename:
+          type: string
+          example: test_audio.wav
+          description: 업로드한 원본 파일명
+        status:
+          type: string
+          example: success
+          description: 처리 상태
+        segments:
+          type: array
+          description: 화자 분리 결과 문자열 목록
+          items:
+            type: string
+            example: "0.400 2.880 speaker_0"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: 지원하지 않는 오디오 형식입니다.
+          description: 오류 메시지
+
+    ValidationErrorItem:
+      type: object
+      required:
+        - loc
+        - msg
+        - type
+      properties:
+        loc:
+          type: array
+          description: 오류 위치
+          items:
+            oneOf:
+              - type: string
+              - type: integer
+          example:
+            - body
+            - file
+        msg:
+          type: string
+          example: Field required
+          description: 검증 오류 메시지
+        type:
+          type: string
+          example: missing
+          description: 검증 오류 타입
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationErrorItem"
